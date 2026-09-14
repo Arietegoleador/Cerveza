@@ -23,9 +23,11 @@ h2{font-size:28px;letter-spacing:-.04em;margin:3px 0 0}
 .section-head{display:flex;justify-content:space-between;align-items:flex-end}
 .metric{font-size:38px;font-weight:800;letter-spacing:-.05em;margin-top:5px}
 .comparison{font-size:13px;font-weight:800;text-align:right;padding:8px 10px;border-radius:11px;background:#f3ebe1;color:var(--wine)}
-.chart-wrap{height:190px;margin:18px 0 0}
+.chart-wrap{height:220px;margin:18px -18px 0;position:relative}
 canvas{width:100%;height:100%;display:block}
-.chart-days{display:grid;grid-template-columns:repeat(7,1fr);font-size:11px;color:var(--muted);text-align:center;margin-top:2px;padding:0 48px}
+.chart-days{display:none}
+.chart-x-grid{position:absolute;left:34px;right:8px;bottom:0;height:18px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));align-items:end;pointer-events:none}
+.chart-x-grid span{text-align:center;font-size:9px;font-weight:600;color:#7d746e}
 .compare-line{border-top:1px solid var(--line);margin-top:15px;padding-top:14px;display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
 .compare-line strong{color:var(--ink)}
 .primary-btn{width:100%;height:56px;border-radius:17px;background:var(--wine);color:white;font-weight:800;font-size:16px;box-shadow:0 9px 20px rgba(111,24,48,.18)}
@@ -43,7 +45,7 @@ canvas{width:100%;height:100%;display:block}
 .stat{background:#faf5ef;border-radius:15px;padding:11px}
 .stat .v{font-size:24px;font-weight:800;letter-spacing:-.04em;margin-top:2px}
 .stat .l{font-size:10px;color:var(--muted);font-weight:750}
-.chart-large{height:205px;margin:11px -3px 0}
+.chart-large{height:240px;margin:8px -12px 0}
 .period-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .arrow{width:38px;height:38px;border-radius:12px;background:#f2e9df;color:var(--wine);font-weight:900}
 .period{font-weight:800}

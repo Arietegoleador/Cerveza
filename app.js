@@ -61,51 +61,36 @@ function renderHome(){
   const labels=["L","M","X","J","V","S","D"], vals=[];
   for(let i=0;i<7;i++) vals.push(getDaily(iso(addDays(ws,i))));
   $("#weekDays").innerHTML=labels.map(x=>`<span>${x}</span>`).join("");
-  drawChart($("#weekChart"),vals,labels,{fill:true,limit:avg,unit:"Litros",showX:false});
+  drawChart($("#weekChart"),vals,labels,{fill:true,limit:avg,unit:"Litros",showX:false,scale:100,fixedMax:11,tickStep:1,labelTicksOnly:true,labelEvery:3,tickFormatter:v=>v===0?"0 L":`${v} L`});
 }
 
 function drawChart(canvas,values,labels,opts={}){
   const ctx=canvas.getContext("2d"),rect=canvas.getBoundingClientRect(),dpr=devicePixelRatio||1;
   canvas.width=Math.max(1,rect.width*dpr);canvas.height=Math.max(1,rect.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
-  const w=rect.width,h=rect.height,p={l:48,r:10,t:26,b:opts.showX===false?12:38};
-  const max=Math.max(...values,opts.limit||0,50)*1.18;
+  const w=rect.width,h=rect.height;
+  const p={l:48,r:48,t:26,b:opts.showX===false?12:38};
+  const innerH=h-p.t-p.b;
+  const data=values.map(v=>Number(v)||0).map(v=>opts.scale?v/opts.scale:v);
+  const limit=opts.limit!=null?(opts.limit/(opts.scale||1)):0;
+  const max=opts.fixedMax!=null?opts.fixedMax:Math.max(...data,limit,0.5)*1.18;
   ctx.clearRect(0,0,w,h);
-
-  ctx.font="700 10px -apple-system,BlinkMacSystemFont,Arial,sans-serif";
-  ctx.fillStyle="#7d746e";
-  ctx.textAlign="left";
-  ctx.fillText(opts.unit||"Litros",p.l,11);
-
+  ctx.font="700 10px -apple-system,BlinkMacSystemFont,Arial,sans-serif";ctx.fillStyle="#7d746e";ctx.textAlign="left";ctx.fillText(opts.unit||"Litros",p.l,11);
   ctx.strokeStyle="#eadfd4";ctx.lineWidth=1;
-  for(let i=0;i<4;i++){
-    const y=p.t+(h-p.t-p.b)*i/3;
+  const tickStep=opts.tickStep||max/3;
+  const tickCount=Math.floor(max/tickStep+0.0001);
+  for(let i=0;i<=tickCount;i++){
+    const value=i*tickStep,y=h-p.b-(value/max)*innerH;
     ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(w-p.r,y);ctx.stroke();
-    ctx.textAlign="right";ctx.fillStyle="#9a918a";ctx.font="600 9px -apple-system,BlinkMacSystemFont,Arial,sans-serif";
-    const value=max-(max/3)*i;
-    ctx.fillText(axisAmount(value),p.l-6,y+3);
+    if(!opts.labelTicksOnly || i%opts.labelEvery===0 || i===0){ctx.textAlign="right";ctx.fillStyle="#9a918a";ctx.font="600 9px -apple-system,BlinkMacSystemFont,Arial,sans-serif";ctx.fillText(opts.tickFormatter?opts.tickFormatter(value):axisAmount(value),p.l-6,y+3)}
   }
-
   const xStep=(w-p.l-p.r)/(values.length-1||1);
-  const pts=values.map((v,i)=>({x:p.l+i*xStep,y:h-p.b-(v/max)*(h-p.t-p.b)}));
-  if(opts.limit!=null){
-    const y=h-p.b-(opts.limit/max)*(h-p.t-p.b);
-    ctx.setLineDash([5,5]);ctx.strokeStyle="#c58b3a";ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(w-p.r,y);ctx.stroke();ctx.setLineDash([]);
-  }
-  if(opts.fill&&pts.length){
-    ctx.beginPath();pts.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.lineTo(pts.at(-1).x,h-p.b);ctx.lineTo(pts[0].x,h-p.b);ctx.closePath();ctx.fillStyle="rgba(111,24,48,.09)";ctx.fill();
-  }
-  if(pts.length){
-    ctx.beginPath();pts.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.strokeStyle="#6f1830";ctx.lineWidth=3;ctx.stroke();
-    pts.forEach(q=>{ctx.beginPath();ctx.arc(q.x,q.y,5,0,Math.PI*2);ctx.fillStyle="#fffdf9";ctx.fill();ctx.strokeStyle="#6f1830";ctx.lineWidth=3;ctx.stroke()});
-  }
-
-  if(opts.showX!==false){
-    ctx.textAlign="center";ctx.font="600 9px -apple-system,BlinkMacSystemFont,Arial,sans-serif";ctx.fillStyle="#7d746e";
-    labels.forEach((label,i)=>ctx.fillText(label,pts[i].x,h-18));
-    ctx.font="700 10px -apple-system,BlinkMacSystemFont,Arial,sans-serif";ctx.fillStyle="#7d746e";
-    ctx.fillText(opts.xUnit||"Periodo",w/2,h-2);
-  }
+  const pts=data.map((v,i)=>({x:p.l+i*xStep,y:h-p.b-(v/max)*innerH}));
+  if(opts.limit!=null){const y=h-p.b-(limit/max)*innerH;ctx.setLineDash([5,5]);ctx.strokeStyle="#c58b3a";ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(w-p.r,y);ctx.stroke();ctx.setLineDash([])}
+  if(opts.fill&&pts.length){ctx.beginPath();pts.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.lineTo(pts.at(-1).x,h-p.b);ctx.lineTo(pts[0].x,h-p.b);ctx.closePath();ctx.fillStyle="rgba(111,24,48,.09)";ctx.fill()}
+  if(pts.length){ctx.beginPath();pts.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.strokeStyle="#6f1830";ctx.lineWidth=3;ctx.stroke();pts.forEach(q=>{ctx.beginPath();ctx.arc(q.x,q.y,5,0,Math.PI*2);ctx.fillStyle="#fffdf9";ctx.fill();ctx.strokeStyle="#6f1830";ctx.lineWidth=3;ctx.stroke()})}
+  if(opts.showX!==false){ctx.textAlign="center";ctx.font="600 9px -apple-system,BlinkMacSystemFont,Arial,sans-serif";ctx.fillStyle="#7d746e";labels.forEach((label,i)=>ctx.fillText(label,pts[i].x,h-18));ctx.font="700 10px -apple-system,BlinkMacSystemFont,Arial,sans-serif";ctx.fillText(opts.xUnit||"Periodo",w/2,h-2)}
 }
+function shortDM(s){const d=dateObj(s);return `${d.getDate()}/${d.getMonth()+1}`;}
 
 function weeklyPeriods(){
   const ws=startOfWeek(new Date()), we=addDays(ws,6);
@@ -138,7 +123,7 @@ function renderWeekly(box){
       <div class="stat"><div class="l">DÍAS CON CONSUMO</div><div class="v">${daysDrink==null?"—":daysDrink}</div></div>
       <div class="stat"><div class="l">DÍAS SIN CONSUMO</div><div class="v">${daysDry==null?"—":daysDry}</div></div>
     </div><div class="chart-large"><canvas id="weeklyStatsChart"></canvas></div></div>`;
-  drawChart($("#weeklyStatsChart"),chartPeriods.map(w=>w.cl),chartPeriods.map(w=>fmtDate(w.start)),{fill:true,limit:histAvg(),unit:"Litros",xUnit:"Semanas"});
+  drawChart($("#weeklyStatsChart"),chartPeriods.map(w=>w.cl),chartPeriods.map(w=>shortDM(w.start)),{fill:true,limit:histAvg(),unit:"Litros",xUnit:"Semanas",scale:100,fixedMax:11,tickStep:1,labelTicksOnly:true,labelEvery:3,tickFormatter:v=>v===0?"0 L":`${v} L`});
   $$(".arrow").forEach(b=>b.onclick=()=>{statsOffset+=Number(b.dataset.shift);renderStats()});
 }
 
@@ -166,7 +151,7 @@ function renderMonthly(box){
       <div class="stat"><div class="l">DÍAS CON CONSUMO</div><div class="v">${daysDrink==null?"—":daysDrink}</div></div>
       <div class="stat"><div class="l">DÍAS SIN CONSUMO</div><div class="v">${daysDry==null?"—":daysDry}</div></div>
     </div><div class="chart-large"><canvas id="monthlyChart"></canvas></div></div>`;
-  drawChart($("#monthlyChart"),all,historicalMonths.map(m=>m.label),{fill:true,unit:"Litros",xUnit:"Meses"});
+  drawChart($("#monthlyChart"),all,historicalMonths.map(m=>`${m.start.getDate()}/${m.start.getMonth()+1}`),{fill:true,unit:"Litros",xUnit:"Meses",scale:100,fixedMax:11,tickStep:1,labelTicksOnly:true,labelEvery:3,tickFormatter:v=>v===0?"0 L":`${v} L`});
   $$(".arrow").forEach(b=>b.onclick=()=>{statsOffset+=Number(b.dataset.shift);renderStats()});
 }
 

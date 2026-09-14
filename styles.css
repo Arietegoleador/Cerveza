@@ -71,3 +71,5 @@ input:focus{border-color:#bd9a82}
 .secondary-btn{height:48px;border-radius:15px;background:#eee5dc;color:var(--ink);font-weight:800}
 .delete-btn{width:100%;background:transparent;color:#a32b2b;font-weight:800;margin-top:15px;padding:10px}
 @media(min-width:700px){.bottom-nav{position:sticky;bottom:0;max-width:620px;margin:auto}.modal-backdrop{align-items:center}.modal{border-radius:28px;max-width:520px}}
+[hidden]{display:none !important}
+.arrow:disabled{opacity:.35}

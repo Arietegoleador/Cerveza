@@ -39,34 +39,72 @@ function monthName(d){return d.toLocaleDateString("es-ES",{month:"long",year:"nu
 function sumRange(start,end){return daily.filter(r=>r.date>=iso(start)&&r.date<=iso(end)).reduce((a,r)=>a+r.cl,0)}
 function getDaily(date){return daily.filter(r=>r.date===date).reduce((a,r)=>a+r.cl,0)}
 function histAvg(){return WEEKLY.reduce((a,w)=>a+w.cl,0)/WEEKLY.length}
-function cl(v){return `${Math.round(v)} cl`}
+function amount(v){
+  const n=Number(v)||0;
+  return n>100 ? `${(n/100).toFixed(1)} L` : `${Math.round(n)} cl`;
+}
+function axisAmount(v){
+  const n=Number(v)||0;
+  if(n===0)return "0 cl";
+  return n>100 ? `${(n/100).toFixed(1)} L` : `${Math.round(n)} cl`;
+}
 
 function renderHome(){
   const now=new Date(), today=iso(now), ws=startOfWeek(now), we=addDays(ws,6);
   const totalToday=getDaily(today), totalWeek=sumRange(ws,we), avg=histAvg();
-  $("#todayTotal").innerHTML=`${Math.round(totalToday)} <span>cl</span>`;
+  $("#todayTotal").innerHTML=amount(totalToday);
   $("#todayDate").textContent=now.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"});
-  $("#weekTotal").innerHTML=`${Math.round(totalWeek)} <span>cl</span>`;
+  $("#weekTotal").innerHTML=amount(totalWeek);
   const diff=avg?((totalWeek-avg)/avg)*100:0;
   $("#weekComparison").textContent=totalWeek===0?"Sin consumo":`${diff>=0?"+":""}${Math.round(diff)}% vs media`;
-  $("#historicalAvg").textContent=cl(avg);
+  $("#historicalAvg").textContent=amount(avg);
   const labels=["L","M","X","J","V","S","D"], vals=[];
   for(let i=0;i<7;i++) vals.push(getDaily(iso(addDays(ws,i))));
   $("#weekDays").innerHTML=labels.map(x=>`<span>${x}</span>`).join("");
-  drawChart($("#weekChart"),vals,labels,{fill:true,limit:avg});
+  drawChart($("#weekChart"),vals,labels,{fill:true,limit:avg,unit:"Litros",showX:false});
 }
 
 function drawChart(canvas,values,labels,opts={}){
   const ctx=canvas.getContext("2d"),rect=canvas.getBoundingClientRect(),dpr=devicePixelRatio||1;
   canvas.width=Math.max(1,rect.width*dpr);canvas.height=Math.max(1,rect.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
-  const w=rect.width,h=rect.height,p={l:8,r:8,t:15,b:22},max=Math.max(...values,opts.limit||0,50)*1.18;
-  ctx.clearRect(0,0,w,h);ctx.strokeStyle="#eadfd4";ctx.lineWidth=1;
-  for(let i=0;i<4;i++){const y=p.t+(h-p.t-p.b)*i/3;ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(w-p.r,y);ctx.stroke()}
+  const w=rect.width,h=rect.height,p={l:48,r:10,t:26,b:opts.showX===false?12:38};
+  const max=Math.max(...values,opts.limit||0,50)*1.18;
+  ctx.clearRect(0,0,w,h);
+
+  ctx.font="700 10px -apple-system,BlinkMacSystemFont,Arial,sans-serif";
+  ctx.fillStyle="#7d746e";
+  ctx.textAlign="left";
+  ctx.fillText(opts.unit||"Litros",p.l,11);
+
+  ctx.strokeStyle="#eadfd4";ctx.lineWidth=1;
+  for(let i=0;i<4;i++){
+    const y=p.t+(h-p.t-p.b)*i/3;
+    ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(w-p.r,y);ctx.stroke();
+    ctx.textAlign="right";ctx.fillStyle="#9a918a";ctx.font="600 9px -apple-system,BlinkMacSystemFont,Arial,sans-serif";
+    const value=max-(max/3)*i;
+    ctx.fillText(axisAmount(value),p.l-6,y+3);
+  }
+
   const xStep=(w-p.l-p.r)/(values.length-1||1);
   const pts=values.map((v,i)=>({x:p.l+i*xStep,y:h-p.b-(v/max)*(h-p.t-p.b)}));
-  if(opts.limit!=null){const y=h-p.b-(opts.limit/max)*(h-p.t-p.b);ctx.setLineDash([5,5]);ctx.strokeStyle="#c58b3a";ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(w-p.r,y);ctx.stroke();ctx.setLineDash([])}
-  if(opts.fill&&pts.length){ctx.beginPath();pts.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.lineTo(pts.at(-1).x,h-p.b);ctx.lineTo(pts[0].x,h-p.b);ctx.closePath();ctx.fillStyle="rgba(111,24,48,.09)";ctx.fill()}
-  if(pts.length){ctx.beginPath();pts.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.strokeStyle="#6f1830";ctx.lineWidth=3;ctx.stroke();pts.forEach(q=>{ctx.beginPath();ctx.arc(q.x,q.y,5,0,Math.PI*2);ctx.fillStyle="#fffdf9";ctx.fill();ctx.strokeStyle="#6f1830";ctx.lineWidth=3;ctx.stroke()})}
+  if(opts.limit!=null){
+    const y=h-p.b-(opts.limit/max)*(h-p.t-p.b);
+    ctx.setLineDash([5,5]);ctx.strokeStyle="#c58b3a";ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(w-p.r,y);ctx.stroke();ctx.setLineDash([]);
+  }
+  if(opts.fill&&pts.length){
+    ctx.beginPath();pts.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.lineTo(pts.at(-1).x,h-p.b);ctx.lineTo(pts[0].x,h-p.b);ctx.closePath();ctx.fillStyle="rgba(111,24,48,.09)";ctx.fill();
+  }
+  if(pts.length){
+    ctx.beginPath();pts.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.strokeStyle="#6f1830";ctx.lineWidth=3;ctx.stroke();
+    pts.forEach(q=>{ctx.beginPath();ctx.arc(q.x,q.y,5,0,Math.PI*2);ctx.fillStyle="#fffdf9";ctx.fill();ctx.strokeStyle="#6f1830";ctx.lineWidth=3;ctx.stroke()});
+  }
+
+  if(opts.showX!==false){
+    ctx.textAlign="center";ctx.font="600 9px -apple-system,BlinkMacSystemFont,Arial,sans-serif";ctx.fillStyle="#7d746e";
+    labels.forEach((label,i)=>ctx.fillText(label,pts[i].x,h-18));
+    ctx.font="700 10px -apple-system,BlinkMacSystemFont,Arial,sans-serif";ctx.fillStyle="#7d746e";
+    ctx.fillText(opts.xUnit||"Periodo",w/2,h-2);
+  }
 }
 
 function weeklyPeriods(){
@@ -94,13 +132,13 @@ function renderWeekly(box){
   const chartStart=Math.max(0,selectedIndex-9), chartPeriods=periods.slice(chartStart,selectedIndex+1);
   box.innerHTML=`<div class="stat-card"><div class="period-nav"><button class="arrow" data-shift="-1" ${selectedIndex===0?"disabled":""}>‹</button><div class="period">${title}</div><button class="arrow" data-shift="1" ${selectedIndex===periods.length-1?"disabled":""}>›</button></div>
     <div class="stat-grid">
-      <div class="stat"><div class="l">CONSUMO</div><div class="v">${cl(selected.cl)}</div></div>
-      <div class="stat"><div class="l">MEDIA HISTÓRICA</div><div class="v">${cl(histAvg())}</div></div>
-      <div class="stat"><div class="l">MÁXIMO SEMANAL</div><div class="v">${cl(maxWeekly)}</div></div>
+      <div class="stat"><div class="l">CONSUMO</div><div class="v">${amount(selected.cl)}</div></div>
+      <div class="stat"><div class="l">MEDIA HISTÓRICA</div><div class="v">${amount(histAvg())}</div></div>
+      <div class="stat"><div class="l">MÁXIMO SEMANAL</div><div class="v">${amount(maxWeekly)}</div></div>
       <div class="stat"><div class="l">DÍAS CON CONSUMO</div><div class="v">${daysDrink==null?"—":daysDrink}</div></div>
       <div class="stat"><div class="l">DÍAS SIN CONSUMO</div><div class="v">${daysDry==null?"—":daysDry}</div></div>
     </div><div class="chart-large"><canvas id="weeklyStatsChart"></canvas></div></div>`;
-  drawChart($("#weeklyStatsChart"),chartPeriods.map(w=>w.cl),chartPeriods.map(w=>fmtDate(w.start)),{fill:true,limit:histAvg()});
+  drawChart($("#weeklyStatsChart"),chartPeriods.map(w=>w.cl),chartPeriods.map(w=>fmtDate(w.start)),{fill:true,limit:histAvg(),unit:"Litros",xUnit:"Semanas"});
   $$(".arrow").forEach(b=>b.onclick=()=>{statsOffset+=Number(b.dataset.shift);renderStats()});
 }
 
@@ -122,13 +160,13 @@ function renderMonthly(box){
   const daysDry=hasDaily?me.getDate()-daysDrink:null;
   box.innerHTML=`<div class="stat-card"><div class="period-nav"><button class="arrow" data-shift="-1">‹</button><div class="period">${monthName(ms)}</div><button class="arrow" data-shift="1">›</button></div>
     <div class="stat-grid">
-      <div class="stat"><div class="l">CONSUMO</div><div class="v">${cl(total)}</div></div>
-      <div class="stat"><div class="l">MEDIA MENSUAL</div><div class="v">${cl(monthlyAverage())}</div></div>
-      <div class="stat"><div class="l">MÁXIMO MENSUAL</div><div class="v">${cl(maxMonthly)}</div></div>
+      <div class="stat"><div class="l">CONSUMO</div><div class="v">${amount(total)}</div></div>
+      <div class="stat"><div class="l">MEDIA MENSUAL</div><div class="v">${amount(monthlyAverage())}</div></div>
+      <div class="stat"><div class="l">MÁXIMO MENSUAL</div><div class="v">${amount(maxMonthly)}</div></div>
       <div class="stat"><div class="l">DÍAS CON CONSUMO</div><div class="v">${daysDrink==null?"—":daysDrink}</div></div>
       <div class="stat"><div class="l">DÍAS SIN CONSUMO</div><div class="v">${daysDry==null?"—":daysDry}</div></div>
     </div><div class="chart-large"><canvas id="monthlyChart"></canvas></div></div>`;
-  drawChart($("#monthlyChart"),all.map(x=>x),historicalMonths.map(m=>m.label),{fill:true});
+  drawChart($("#monthlyChart"),all,historicalMonths.map(m=>m.label),{fill:true,unit:"Litros",xUnit:"Meses"});
   $$(".arrow").forEach(b=>b.onclick=()=>{statsOffset+=Number(b.dataset.shift);renderStats()});
 }
 
@@ -164,12 +202,12 @@ function renderRecords(box){
   const streakDrink=maxStreak(true), streakDry=maxStreak(false);
   const minWeek=Math.min(...WEEKLY.map(w=>w.cl));
   box.innerHTML=`<div class="record-grid">
-    <div class="record"><div class="value">${cl(maxDay)}</div><div class="label">Máximo diario</div></div>
-    <div class="record"><div class="value">${cl(maxWeek)}</div><div class="label">Máximo semanal</div></div>
-    <div class="record"><div class="value">${cl(maxMonth)}</div><div class="label">Máximo mensual</div></div>
+    <div class="record"><div class="value">${amount(maxDay)}</div><div class="label">Máximo diario</div></div>
+    <div class="record"><div class="value">${amount(maxWeek)}</div><div class="label">Máximo semanal</div></div>
+    <div class="record"><div class="value">${amount(maxMonth)}</div><div class="label">Máximo mensual</div></div>
     <div class="record"><div class="value">${streakDrink} ${streakDrink===1?"día":"días"}</div><div class="label">Máxima racha bebiendo · datos diarios disponibles</div></div>
     <div class="record"><div class="value">${streakDry} ${streakDry===1?"día":"días"}</div><div class="label">Máxima racha sin beber · datos diarios disponibles</div></div>
-    <div class="record"><div class="value">${cl(minWeek)}</div><div class="label">Menor consumo semanal conocido</div></div>
+    <div class="record"><div class="value">${amount(minWeek)}</div><div class="label">Menor consumo semanal conocido</div></div>
   </div>`;
 }
 
@@ -186,7 +224,7 @@ function renderHistory(){
   const list=$("#historyList"),rows=daily.filter(r=>r.cl>0).sort((a,b)=>b.date.localeCompare(a.date));
   if(!rows.length){list.innerHTML='<div class="empty">Todavía no hay registros.</div>';return}
   const groups={};rows.forEach(r=>{const k=dateObj(r.date).toLocaleDateString("es-ES",{month:"long",year:"numeric"});(groups[k]??=[]).push(r)});
-  list.innerHTML=Object.entries(groups).map(([m,rs])=>`<div class="history-month">${m}</div>`+rs.map(r=>`<button class="history-row" data-id="${r.id}"><span class="history-date">${fmtDate(r.date)}</span><span class="history-value">${cl(r.cl)}</span></button>`).join("")).join("");
+  list.innerHTML=Object.entries(groups).map(([m,rs])=>`<div class="history-month">${m}</div>`+rs.map(r=>`<button class="history-row" data-id="${r.id}"><span class="history-date">${fmtDate(r.date)}</span><span class="history-value">${amount(r.cl)}</span></button>`).join("")).join("");
   $$(".history-row").forEach(b=>b.onclick=()=>openModal(b.dataset.id));
 }
 
@@ -200,10 +238,10 @@ function openModal(id=null){
 }
 function closeModal(){$("#modalBackdrop").hidden=true;editingId=null}
 function saveModal(){
-  const amount=Math.round(Number($("#amountInput").value)),date=$("#dateInput").value;
-  if(!amount||amount<1||!date)return;
-  if(editingId){const r=daily.find(x=>x.id===editingId);r.cl=amount;r.date=date}
-  else daily.push({id:crypto.randomUUID(),date,cl:amount});
+  const amountValue=Math.round(Number($("#amountInput").value)),date=$("#dateInput").value;
+  if(!amountValue||amountValue<1||!date)return;
+  if(editingId){const r=daily.find(x=>x.id===editingId);r.cl=amountValue;r.date=date}
+  else daily.push({id:crypto.randomUUID(),date,cl:amountValue});
   save();closeModal();renderAll();
 }
 function renderAll(){renderHome();renderStats();renderHistory()}
@@ -212,7 +250,7 @@ $$(".nav-item").forEach(b=>b.onclick=()=>{$$(".nav-item").forEach(x=>x.classList
 $$(".seg").forEach(b=>b.onclick=()=>{$$(".seg").forEach(x=>x.classList.remove("active"));b.classList.add("active");statsTab=b.dataset.tab;statsOffset=0;renderStats()});
 $("#addBtn").onclick=()=>openModal();$("#historyAddBtn").onclick=()=>openModal();$("#closeModal").onclick=closeModal;$("#cancelBtn").onclick=closeModal;$("#saveBtn").onclick=saveModal;
 $("#deleteBtn").onclick=()=>{if(editingId){daily=daily.filter(r=>r.id!==editingId);save();closeModal();renderAll()}};
-$$(".quick").forEach(b=>b.onclick=()=>{$("#amountInput").value=b.dataset.value;$$.call(null);$$(".quick").forEach(x=>x.classList.remove("selected"));b.classList.add("selected")});
+$$(".quick").forEach(b=>b.onclick=()=>{$("#amountInput").value=b.dataset.value;$$(".quick").forEach(x=>x.classList.remove("selected"));b.classList.add("selected")});
 $("#todayBtn").onclick=()=>document.querySelector('[data-view="home"]').click();
 window.addEventListener("resize",renderHome);
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});

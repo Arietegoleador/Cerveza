@@ -23,9 +23,9 @@ h2{font-size:28px;letter-spacing:-.04em;margin:3px 0 0}
 .section-head{display:flex;justify-content:space-between;align-items:flex-end}
 .metric{font-size:38px;font-weight:800;letter-spacing:-.05em;margin-top:5px}
 .comparison{font-size:13px;font-weight:800;text-align:right;padding:8px 10px;border-radius:11px;background:#f3ebe1;color:var(--wine)}
-.chart-wrap{height:190px;margin:18px -5px 0}
+.chart-wrap{height:190px;margin:18px 0 0}
 canvas{width:100%;height:100%;display:block}
-.chart-days{display:grid;grid-template-columns:repeat(7,1fr);font-size:11px;color:var(--muted);text-align:center;margin-top:2px}
+.chart-days{display:grid;grid-template-columns:repeat(7,1fr);font-size:11px;color:var(--muted);text-align:center;margin-top:2px;padding:0 48px 0 48px}
 .compare-line{border-top:1px solid var(--line);margin-top:15px;padding-top:14px;display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
 .compare-line strong{color:var(--ink)}
 .primary-btn{width:100%;height:56px;border-radius:17px;background:var(--wine);color:white;font-weight:800;font-size:16px;box-shadow:0 9px 20px rgba(111,24,48,.18)}

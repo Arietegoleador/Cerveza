@@ -60,7 +60,7 @@ function renderHome(){
   $("#historicalAvg").textContent=amount(avg);
   const labels=["L","M","X","J","V","S","D"], vals=[];
   for(let i=0;i<7;i++) vals.push(getDaily(iso(addDays(ws,i))));
-  drawChart($("#weekChart"),vals,labels,{fill:true,limit:avg,unit:"Litros",scale:100,fixedMax:9,tickStep:1,labelTicksOnly:true,labelEvery:3,tickFormatter:v=>v===0?"0 L":`${v} L`,externalX:true});
+  drawChart($("#weekChart"),vals,labels,{fill:true,limit:avg,unit:"Litros",scale:100,fixedMax:9,tickStep:1,labelTicksOnly:true,labelEvery:3,tickFormatter:v=>v===0?"0 L":`${v} L`});
 }
 
 function drawChart(canvas,values,labels,opts={}){
